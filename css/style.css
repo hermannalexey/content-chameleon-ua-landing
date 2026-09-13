@@ -283,7 +283,7 @@ p + .subhead { margin-top: 22px; }
   text-wrap: pretty;
 }
 
-.outcomes { margin: 0 0 22px; border-top: 1px solid var(--rule); }
+.outcomes { margin: 22px 0 0; border-top: 1px solid var(--rule); }
 .outcomes li {
   position: relative; padding: 10px 0 10px 32px;
   border-bottom: 1px solid var(--rule);
