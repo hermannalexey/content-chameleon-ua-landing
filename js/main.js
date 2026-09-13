@@ -3,55 +3,51 @@
 
   var CALENDLY_URL = 'https://calendly.com/content-chameleon/30min?hide_gdpr_banner=1';
 
-  /* Edition date — the masthead always shows today's date */
+  /* Edition date in the colophon — always today's date */
   var today = document.getElementById('today');
   if (today) {
     var now = new Date();
     try {
-      var s = new Intl.DateTimeFormat('uk-UA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+      var s = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' })
         .format(now).replace(/\s*р\.$/, '');
-      today.textContent = s.charAt(0).toUpperCase() + s.slice(1);
+      today.textContent = s;
       today.setAttribute('datetime', now.toISOString().slice(0, 10));
     } catch (e) { /* keep static fallback */ }
   }
   var year = document.getElementById('year');
   if (year) year.textContent = new Date().getFullYear();
 
+  /* CTA click events for whatever analytics gets installed (GTM dataLayer) */
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-cta]');
+    if (!el) return;
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ event: 'cta_click', cta_location: el.getAttribute('data-cta') });
+  });
+
   if (!('IntersectionObserver' in window)) return;
 
-  /* Mini masthead on desktop, sticky CTA on mobile — both appear once the masthead is gone
-     and hide again while the booking coupon is on screen */
-  var topbar = document.getElementById('topbar');
+  /* Page indicator ("с. 4") and current nav link follow the screen in the middle of the viewport */
+  var pageNo = document.getElementById('page-no');
+  var navLinks = Array.prototype.slice.call(document.querySelectorAll('.bar__nav a'));
+  var screens = document.querySelectorAll('.screen[data-page]');
   var mobileCta = document.getElementById('mobile-cta');
-  var masthead = document.querySelector('.masthead');
-  var book = document.getElementById('book');
-  var pastMasthead = false;
-  var bookVisible = false;
 
-  function sync() {
-    var show = pastMasthead && !bookVisible;
-    if (topbar) {
-      topbar.classList.toggle('is-visible', pastMasthead);
-      topbar.setAttribute('aria-hidden', pastMasthead ? 'false' : 'true');
-      topbar.querySelectorAll('a').forEach(function (a) { a.tabIndex = pastMasthead ? 0 : -1; });
-    }
-    if (mobileCta) mobileCta.classList.toggle('is-visible', show);
-  }
+  var pageObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      var el = entry.target;
+      if (pageNo) pageNo.textContent = 'с. ' + el.getAttribute('data-page');
+      navLinks.forEach(function (a) {
+        a.classList.toggle('is-current', a.getAttribute('href') === '#' + el.id);
+      });
+      /* sticky mobile CTA hides on the hero (it has its own buttons) and on the booking screen */
+      if (mobileCta) mobileCta.classList.toggle('is-visible', el.id !== 'top' && el.id !== 'book');
+    });
+  }, { rootMargin: '-50% 0px -50% 0px' });
+  screens.forEach(function (el) { pageObserver.observe(el); });
 
-  if (masthead) {
-    new IntersectionObserver(function (entries) {
-      pastMasthead = !entries[0].isIntersecting;
-      sync();
-    }).observe(masthead);
-  }
-  if (book) {
-    new IntersectionObserver(function (entries) {
-      bookVisible = entries[0].isIntersecting;
-      sync();
-    }, { threshold: 0.05 }).observe(book);
-  }
-
-  /* Calendly: loaded only when the reader gets close to the coupon */
+  /* Calendly: loaded only when the reader gets close to the booking screen */
   var slot = document.getElementById('calendly-slot');
   if (slot) {
     var io = new IntersectionObserver(function (entries) {
@@ -69,12 +65,4 @@
     }, { rootMargin: '800px 0px' });
     io.observe(slot);
   }
-
-  /* CTA click events for whatever analytics gets installed (GTM dataLayer) */
-  document.addEventListener('click', function (e) {
-    var el = e.target.closest('[data-cta]');
-    if (!el) return;
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({ event: 'cta_click', cta_location: el.getAttribute('data-cta') });
-  });
 })();
